@@ -491,7 +491,7 @@ func Serve(opts *ServeConfig) {
 }
 
 func serverListener() (net.Listener, error) {
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == "windows" || os.Getenv("PLUGIN_LISTEN_TYPE") == "tcp" {
 		return serverListener_tcp()
 	}
 
