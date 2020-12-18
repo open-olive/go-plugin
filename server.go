@@ -491,10 +491,6 @@ func Serve(opts *ServeConfig) {
 }
 
 func serverListener() (net.Listener, error) {
-	if runtime.GOOS == "windows" {
-		return serverListener_tcp()
-	}
-
 	return serverListener_unix()
 }
 
@@ -541,20 +537,22 @@ func serverListener_tcp() (net.Listener, error) {
 }
 
 func serverListener_unix() (net.Listener, error) {
-	tf, err := ioutil.TempFile("", "plugin")
-	if err != nil {
-		return nil, err
-	}
-	path := tf.Name()
+	//tf, err := ioutil.TempFile("", "plugin")
+	//if err != nil {
+	//	return nil, err
+	//}
+	//path := tf.Name()
+	//
+	//// Close the file and remove it because it has to not exist for
+	//// the domain socket.
+	//if err := tf.Close(); err != nil {
+	//	return nil, err
+	//}
+	//if err := os.Remove(path); err != nil {
+	//	return nil, err
+	//}
 
-	// Close the file and remove it because it has to not exist for
-	// the domain socket.
-	if err := tf.Close(); err != nil {
-		return nil, err
-	}
-	if err := os.Remove(path); err != nil {
-		return nil, err
-	}
+	path := "unixSocket"
 
 	l, err := net.Listen("unix", path)
 	if err != nil {
