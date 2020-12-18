@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"os"
 	"os/signal"
@@ -48,6 +49,11 @@ type HandshakeConfig struct {
 	MagicCookieValue string
 }
 
+type ConnectionConfig struct {
+	Network       string // tcp or unix
+	UnixSocketDir string
+}
+
 // PluginSet is a set of plugins provided to be registered in the plugin
 // server.
 type PluginSet map[string]Plugin
@@ -82,6 +88,8 @@ type ServeConfig struct {
 	// Logger is used to pass a logger into the server. If none is provided the
 	// server will create a default logger.
 	Logger hclog.Logger
+
+	ConnectionConfig
 
 	// Test, if non-nil, will put plugin serving into "test mode". This is
 	// meant to be used as part of `go test` within a plugin's codebase to
@@ -268,7 +276,7 @@ func Serve(opts *ServeConfig) {
 	}
 
 	// Register a listener so we can accept a connection
-	listener, err := serverListener()
+	listener, err := serverListener(&opts.ConnectionConfig)
 	if err != nil {
 		logger.Error("plugin init error", "error", err)
 		return
@@ -488,11 +496,16 @@ func Serve(opts *ServeConfig) {
 	}
 }
 
-func serverListener() (net.Listener, error) {
-	return serverListener_unix()
+func serverListener(cc *ConnectionConfig) (net.Listener, error) {
+	switch cc.Network {
+	case "tcp":
+		return serverListener_tcp(cc)
+	default:
+		return serverListener_unix(cc)
+	}
 }
 
-func serverListener_tcp() (net.Listener, error) {
+func serverListener_tcp(cc *ConnectionConfig) (net.Listener, error) {
 	envMinPort := os.Getenv("PLUGIN_MIN_PORT")
 	envMaxPort := os.Getenv("PLUGIN_MAX_PORT")
 
@@ -534,23 +547,21 @@ func serverListener_tcp() (net.Listener, error) {
 	return nil, errors.New("Couldn't bind plugin TCP listener")
 }
 
-func serverListener_unix() (net.Listener, error) {
-	//tf, err := ioutil.TempFile("", "plugin")
-	//if err != nil {
-	//	return nil, err
-	//}
-	//path := tf.Name()
-	//
-	//// Close the file and remove it because it has to not exist for
-	//// the domain socket.
-	//if err := tf.Close(); err != nil {
-	//	return nil, err
-	//}
-	//if err := os.Remove(path); err != nil {
-	//	return nil, err
-	//}
+func serverListener_unix(cc *ConnectionConfig) (net.Listener, error) {
+	tf, err := ioutil.TempFile(cc.UnixSocketDir, "plugin")
+	if err != nil {
+		return nil, err
+	}
+	path := tf.Name()
 
-	path := "unixSocket"
+	// Close the file and remove it because it has to not exist for
+	// the domain socket.
+	if err := tf.Close(); err != nil {
+		return nil, err
+	}
+	if err := os.Remove(path); err != nil {
+		return nil, err
+	}
 
 	l, err := net.Listen("unix", path)
 	if err != nil {
