@@ -4,8 +4,8 @@ import (
 	"os"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-plugin"
-	"github.com/hashicorp/go-plugin/examples/basic/commons"
+	"github.com/open-olive/go-plugin"
+	"github.com/open-olive/go-plugin/examples/basic/commons"
 )
 
 // Here is a real implementation of Greeter
