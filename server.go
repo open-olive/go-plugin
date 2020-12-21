@@ -568,7 +568,7 @@ func serverListener_unix(cc *ConnectionConfig) (net.Listener, error) {
 		}
 	}
 
-	l, err := net.Listen("unix", "file://"+path)
+	l, err := net.Listen("unix", path)
 	if err != nil {
 		return nil, err
 	}
