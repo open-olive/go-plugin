@@ -557,9 +557,18 @@ func serverListener_unix(cc *ConnectionConfig) (net.Listener, error) {
 			return nil, err
 		}
 		path = tf.Name()
+
+		// Close the file and remove it because it has to not exist for
+		// the domain socket.
+		if err := tf.Close(); err != nil {
+			return nil, err
+		}
+		if err := os.Remove(path); err != nil {
+			return nil, err
+		}
 	}
 
-	l, err := net.Listen("unix", path)
+	l, err := net.Listen("unix", "file://"+path)
 	if err != nil {
 		return nil, err
 	}
