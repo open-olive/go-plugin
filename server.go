@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"os"
 	"os/signal"
@@ -49,7 +50,8 @@ type HandshakeConfig struct {
 }
 
 type ConnectionConfig struct {
-	Network string // tcp or unix
+	Network    string // tcp or unix
+	SocketPath string
 }
 
 // PluginSet is a set of plugins provided to be registered in the plugin
@@ -546,7 +548,16 @@ func serverListener_tcp(cc *ConnectionConfig) (net.Listener, error) {
 }
 
 func serverListener_unix(cc *ConnectionConfig) (net.Listener, error) {
-	path := "communicationSocket"
+	var path string
+	if cc.SocketPath != "" {
+		path = cc.SocketPath
+	} else {
+		tf, err := ioutil.TempFile("", "plugin")
+		if err != nil {
+			return nil, err
+		}
+		path = tf.Name()
+	}
 
 	l, err := net.Listen("unix", path)
 	if err != nil {
