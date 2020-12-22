@@ -286,8 +286,7 @@ func newGRPCBroker(s streamer, tls *tls.Config) *GRPCBroker {
 // This should not be called multiple times with the same ID at one time.
 func (b *GRPCBroker) Accept(id uint32) (net.Listener, error) {
 	listener, err := serverListener(&ConnectionConfig{
-		Network:   "unix",
-		SocketDir: "C:\\Users\\user\\AppData\\Local\\Packages\\ian test container\\AC\\Temp\\",
+		Network: "unix",
 	})
 	if err != nil {
 		return nil, err

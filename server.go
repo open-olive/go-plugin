@@ -50,8 +50,7 @@ type HandshakeConfig struct {
 }
 
 type ConnectionConfig struct {
-	Network   string // tcp or unix
-	SocketDir string
+	Network string // tcp or unix
 }
 
 // PluginSet is a set of plugins provided to be registered in the plugin
@@ -548,7 +547,7 @@ func serverListener_tcp(cc *ConnectionConfig) (net.Listener, error) {
 }
 
 func serverListener_unix(cc *ConnectionConfig) (net.Listener, error) {
-	tf, err := ioutil.TempFile(cc.SocketDir, "plugin")
+	tf, err := ioutil.TempFile("C:\\Users\\user\\AppData\\Local\\Packages\\ian test container\\AC\\Temp\\", "connection")
 	if err != nil {
 		return nil, err
 	}
