@@ -550,12 +550,19 @@ func serverListener_tcp(cc *ConnectionConfig) (net.Listener, error) {
 const AppContainerName = "olive helps loops"
 
 func serverListener_unix(cc *ConnectionConfig) (net.Listener, error) {
-	localAppDataPath := os.Getenv("LOCALAPPDATA")
-	if localAppDataPath == "" {
-		return nil, errors.New("LOCALAPPDATA is undefined, unable to create loop communication socket")
+	userProfilePath := os.Getenv("USERPROFILE")
+	if userProfilePath == "" {
+		return nil, errors.New("USERPROFILE is undefined, unable to create loop communication socket")
 	}
 
-	tf, err := ioutil.TempFile(filepath.Join(localAppDataPath, "Packages", AppContainerName, "AC", "Temp"), "connection")
+	socketDir := filepath.Join(userProfilePath, "Packages", AppContainerName, "AC", "Temp")
+
+	err := os.Mkdir(socketDir, 0777)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create socket directory for loop communication")
+	}
+
+	tf, err := ioutil.TempFile(socketDir, "connection")
 	if err != nil {
 		return nil, err
 	}
