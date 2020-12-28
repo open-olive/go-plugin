@@ -557,14 +557,14 @@ func serverListener_unix(cc *ConnectionConfig) (net.Listener, error) {
 
 	socketDir := filepath.Join(userProfilePath, "AppData", "Local", "Packages", AppContainerName, "AC", "Temp")
 
-	err := os.Mkdir(socketDir, 0777)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create socket directory for loop communication")
-	}
+	//err := os.Mkdir(socketDir, 0777)
+	//if err != nil {
+	//	return nil, fmt.Errorf("failed to create socket directory for loop communication")
+	//}
 
 	tf, err := ioutil.TempFile(socketDir, "connection")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create socket %s %v", socketDir, err)
 	}
 	path := tf.Name()
 
