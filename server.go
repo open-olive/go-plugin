@@ -555,7 +555,7 @@ func serverListener_unix(cc *ConnectionConfig) (net.Listener, error) {
 		return nil, errors.New("USERPROFILE is undefined, unable to create loop communication socket")
 	}
 
-	socketDir := filepath.Join(userProfilePath, "Packages", AppContainerName, "AC", "Temp")
+	socketDir := filepath.Join(userProfilePath, "AppData", "Local", "Packages", AppContainerName, "AC", "Temp")
 
 	err := os.Mkdir(socketDir, 0777)
 	if err != nil {
