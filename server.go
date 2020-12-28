@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -546,8 +547,15 @@ func serverListener_tcp(cc *ConnectionConfig) (net.Listener, error) {
 	return nil, errors.New("Couldn't bind plugin TCP listener")
 }
 
+const AppContainerName = "olive helps loops"
+
 func serverListener_unix(cc *ConnectionConfig) (net.Listener, error) {
-	tf, err := ioutil.TempFile("C:\\Users\\user\\AppData\\Local\\Packages\\ian test container\\AC\\Temp\\", "connection")
+	localAppDataPath := os.Getenv("LOCALAPPDATA")
+	if localAppDataPath == "" {
+		return nil, errors.New("LOCALAPPDATA is undefined, unable to create loop communication socket")
+	}
+
+	tf, err := ioutil.TempFile(filepath.Join(localAppDataPath, "Packages", AppContainerName, "AC", "Temp"), "connection")
 	if err != nil {
 		return nil, err
 	}
