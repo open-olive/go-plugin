@@ -163,7 +163,7 @@ func TestPluginGRPCConn(t testing.T, ps map[string]Plugin) (*GRPCClient, *GRPCSe
 	}
 
 	brokerGRPCClient := newGRPCBrokerClient(conn)
-	broker := newGRPCBroker(brokerGRPCClient, nil)
+	broker := newGRPCBroker(brokerGRPCClient, ConnectionConfig{}, nil)
 	go broker.Run()
 	go brokerGRPCClient.StartStream()
 
