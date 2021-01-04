@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -96,7 +97,7 @@ type ServeConfig struct {
 	// launch the plugin in-process and output a ReattachConfig.
 	//
 	// This changes the behavior of the server in a number of ways to
-	// accomodate the expectation of running in-process:
+	// accommodate the expectation of running in-process:
 	//
 	//   * The handshake cookie is not validated.
 	//   * Stdout/stderr will receive plugin reads and writes
@@ -276,7 +277,7 @@ func Serve(opts *ServeConfig) {
 	}
 
 	// Register a listener so we can accept a connection
-	listener, err := serverListener(&opts.ConnectionConfig)
+	listener, err := serverListener(opts.ConnectionConfig)
 	if err != nil {
 		logger.Error("plugin init error", "error", err)
 		return
@@ -383,13 +384,14 @@ func Serve(opts *ServeConfig) {
 	case ProtocolGRPC:
 		// Create the gRPC server
 		server = &GRPCServer{
-			Plugins: pluginSet,
-			Server:  opts.GRPCServer,
-			TLS:     tlsConfig,
-			Stdout:  stdout_r,
-			Stderr:  stderr_r,
-			DoneCh:  doneCh,
-			logger:  logger,
+			Plugins:          pluginSet,
+			Server:           opts.GRPCServer,
+			TLS:              tlsConfig,
+			Stdout:           stdout_r,
+			Stderr:           stderr_r,
+			DoneCh:           doneCh,
+			ConnectionConfig: opts.ConnectionConfig,
+			logger:           logger,
 		}
 
 	default:
@@ -496,16 +498,22 @@ func Serve(opts *ServeConfig) {
 	}
 }
 
-func serverListener(cc *ConnectionConfig) (net.Listener, error) {
+func serverListener(cc ConnectionConfig) (net.Listener, error) {
 	switch cc.Network {
 	case "tcp":
-		return serverListener_tcp(cc)
+		return serverListener_tcp()
+	case "unix":
+		return serverListener_unix()
 	default:
-		return serverListener_unix(cc)
+		if runtime.GOOS == "windows" {
+			return serverListener_tcp()
+		} else {
+			return serverListener_unix()
+		}
 	}
 }
 
-func serverListener_tcp(cc *ConnectionConfig) (net.Listener, error) {
+func serverListener_tcp() (net.Listener, error) {
 	envMinPort := os.Getenv("PLUGIN_MIN_PORT")
 	envMaxPort := os.Getenv("PLUGIN_MAX_PORT")
 
@@ -547,24 +555,28 @@ func serverListener_tcp(cc *ConnectionConfig) (net.Listener, error) {
 	return nil, errors.New("Couldn't bind plugin TCP listener")
 }
 
-const AppContainerName = "olive helps loops"
+func serverListener_unix() (net.Listener, error) {
+	var err error
+	var tf *os.File
 
-func serverListener_unix(cc *ConnectionConfig) (net.Listener, error) {
-	userProfilePath := os.Getenv("USERPROFILE")
-	if userProfilePath == "" {
-		return nil, errors.New("USERPROFILE is undefined, unable to create loop communication socket")
-	}
+	if runtime.GOOS == "windows" {
+		userProfilePath := os.Getenv("USERPROFILE")
+		if userProfilePath == "" {
+			return nil, errors.New("USERPROFILE is undefined, unable to create loop communication socket")
+		}
 
-	socketDir := filepath.Join(userProfilePath, "AppData", "Local", "Packages", AppContainerName, "AC", "Temp")
+		appContainerName := "olive helps loops"
+		socketDir := filepath.Join(userProfilePath, "AppData", "Local", "Packages", appContainerName, "AC", "Temp")
 
-	//err := os.Mkdir(socketDir, 0777)
-	//if err != nil {
-	//	return nil, fmt.Errorf("failed to create socket directory for loop communication")
-	//}
-
-	tf, err := ioutil.TempFile(socketDir, "connection")
-	if err != nil {
-		return nil, fmt.Errorf("failed to create socket %s %v", socketDir, err)
+		tf, err = ioutil.TempFile(socketDir, "connection")
+		if err != nil {
+			return nil, fmt.Errorf("failed to create socket %s %v", socketDir, err)
+		}
+	} else {
+		tf, err = ioutil.TempFile("", "plugin")
+		if err != nil {
+			return nil, err
+		}
 	}
 	path := tf.Name()
 

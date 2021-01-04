@@ -257,12 +257,13 @@ func (s *gRPCBrokerClientImpl) Close() {
 // new streams. This is useful for complex args and return values,
 // or anything else you might need a data stream for.
 type GRPCBroker struct {
-	nextId   uint32
-	streamer streamer
-	streams  map[uint32]*gRPCBrokerPending
-	tls      *tls.Config
-	doneCh   chan struct{}
-	o        sync.Once
+	nextId           uint32
+	streamer         streamer
+	streams          map[uint32]*gRPCBrokerPending
+	tls              *tls.Config
+	doneCh           chan struct{}
+	o                sync.Once
+	connectionConfig ConnectionConfig
 
 	sync.Mutex
 }
@@ -272,12 +273,13 @@ type gRPCBrokerPending struct {
 	doneCh chan struct{}
 }
 
-func newGRPCBroker(s streamer, tls *tls.Config) *GRPCBroker {
+func newGRPCBroker(s streamer, cc ConnectionConfig, tls *tls.Config) *GRPCBroker {
 	return &GRPCBroker{
-		streamer: s,
-		streams:  make(map[uint32]*gRPCBrokerPending),
-		tls:      tls,
-		doneCh:   make(chan struct{}),
+		streamer:         s,
+		streams:          make(map[uint32]*gRPCBrokerPending),
+		tls:              tls,
+		doneCh:           make(chan struct{}),
+		connectionConfig: cc,
 	}
 }
 
@@ -285,9 +287,7 @@ func newGRPCBroker(s streamer, tls *tls.Config) *GRPCBroker {
 //
 // This should not be called multiple times with the same ID at one time.
 func (b *GRPCBroker) Accept(id uint32) (net.Listener, error) {
-	listener, err := serverListener(&ConnectionConfig{
-		Network: "unix",
-	})
+	listener, err := serverListener(b.connectionConfig)
 	if err != nil {
 		return nil, err
 	}

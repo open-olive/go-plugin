@@ -52,6 +52,8 @@ type GRPCServer struct {
 	Stdout io.Reader
 	Stderr io.Reader
 
+	ConnectionConfig
+
 	config      GRPCServerConfig
 	server      *grpc.Server
 	broker      *GRPCBroker
@@ -81,7 +83,7 @@ func (s *GRPCServer) Init() error {
 	// Register the broker service
 	brokerServer := newGRPCBrokerServer()
 	plugin.RegisterGRPCBrokerServer(s.server, brokerServer)
-	s.broker = newGRPCBroker(brokerServer, s.TLS)
+	s.broker = newGRPCBroker(brokerServer, s.ConnectionConfig, s.TLS)
 	go s.broker.Run()
 
 	// Register the controller
